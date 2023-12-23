@@ -57,9 +57,9 @@
 //!     println!("Approximately this many items are stored already: {stored_items_approx}");
 //!
 //!     // We can also get some properties of the `BloomFilter` itself.
-//!     println!("The filter is constructed of this many bits: {}", bloom.get_bit_count());
-//!     println!("The filter uses this many hash functions: {}", bloom.get_hash_fn_count());
-//!     println!("The filter has this actual error rate: {}", bloom.get_error_rate());
+//!     println!("The filter is constructed of this many bits: {}", bloom.bit_count());
+//!     println!("The filter uses this many hash functions: {}", bloom.hash_fn_count());
+//!     println!("The filter has this actual error rate: {}", bloom.error_rate());
 //! }
 //! ```
 
@@ -70,9 +70,9 @@ pub trait Filter {
     fn add(&mut self, item: impl Hash) -> &mut Self;
     fn contains(&self, item: impl Hash) -> bool;
     fn count_approx(&self) -> usize;
-    fn get_bit_count(&self) -> usize;
-    fn get_error_rate(&self) -> f64;
-    fn get_hash_fn_count(&self) -> usize;
+    fn bit_count(&self) -> usize;
+    fn error_rate(&self) -> f64;
+    fn hash_fn_count(&self) -> usize;
 }
 
 pub mod bloom;

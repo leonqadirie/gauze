@@ -57,9 +57,9 @@ fn main() {
     println!("Approximately this many items are stored already: {stored_items_approx}");
 
     // We can also get some properties of the `BloomFilter` itself.
-    println!("The filter is constructed of this many bits: {}", bloom.get_bit_count());
-    println!("The filter uses this many hash functions: {}", bloom.get_hash_fn_count());
-    println!("The filter has this actual error rate: {}", bloom.get_error_rate());
+    println!("The filter is constructed of this many bits: {}", bloom.bit_count());
+    println!("The filter uses this many hash functions: {}", bloom.hash_fn_count());
+    println!("The filter has this actual error rate: {}", bloom.error_rate());
 }
 ```
 

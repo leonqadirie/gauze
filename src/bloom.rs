@@ -16,6 +16,7 @@ static OPTIMIZATION_STEP: f64 = 1.01;
 ///
 /// It never returns false negatives but may return false positives.
 /// Items can only be added, not deleted.
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct BloomFilter {
     filter: BitVec,
     error_rate: f64,
@@ -78,17 +79,17 @@ impl Filter for BloomFilter {
     }
 
     /// Returns the amount of bits that constitute the `BloomFilter`'s actual `filter`.
-    fn get_bit_count(&self) -> usize {
+    fn bit_count(&self) -> usize {
         self.bit_count
     }
 
     /// Returns the `BloomFilter`'s actual error rate.
-    fn get_error_rate(&self) -> f64 {
+    fn error_rate(&self) -> f64 {
         self.error_rate
     }
 
     // Returns the number of hash functions the `BloomFilter` uses.
-    fn get_hash_fn_count(&self) -> usize {
+    fn hash_fn_count(&self) -> usize {
         self.hash_fn_count
     }
 }
@@ -205,8 +206,8 @@ mod tests {
         let bloom =
             BloomFilter::new(capacity, target_err_rate).expect("couldn't construct Bloom filter");
 
-        assert_eq!(1449, bloom.get_bit_count());
-        assert_eq!(11, bloom.get_hash_fn_count());
-        assert_eq!(0.0009855809404929945, bloom.get_error_rate());
+        assert_eq!(1449, bloom.bit_count());
+        assert_eq!(11, bloom.hash_fn_count());
+        assert_eq!(0.0009855809404929945, bloom.error_rate());
     }
 }
