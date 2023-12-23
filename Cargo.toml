@@ -5,8 +5,10 @@ edition = "2021"
 license = "MIT"
 authors = ["Leon Qadirie"]
 repository = "https://github.com/leonqadirie/gauze"
+homepage = "https://github.com/leonqadirie/gauze"
+readme = "README.md"
 description = "Probabilistic set membership filters with a simple interface - WIP"
-keywords = ["bloom filter", "filter", "probabilistic filter"]
+keywords = ["filter", "bloom_filter"]
 
 [dependencies]
 bitvec = { version = "1.0.1", features = ["alloc"] }
