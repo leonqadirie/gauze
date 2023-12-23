@@ -1,0 +1,14 @@
+[package]
+name = "gauze"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Leon Qadirie"]
+repository = "https://github.com/leonqadirie/gauze"
+description = "Probabilistic set membership filters with a simple interface - WIP"
+keywords = ["bloom filter", "filter", "probabilistic filter"]
+
+[dependencies]
+bitvec = { version = "1.0.1", features = ["alloc"] }
+rand = "0.8.5"
+twox-hash = "1.6.3"
