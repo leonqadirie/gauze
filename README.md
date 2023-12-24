@@ -28,20 +28,20 @@ fn main() {
         .expect("couldn't construct Bloom filter.");
 
     // `BloomFilter`s can add any type that is `impl Hash`
-    bloom.add(1);
-    bloom.add("a");
-    bloom.add(Vec::<bool>::new());
-    bloom.add([0; 2]);
+    bloom.insert(1);
+    bloom.insert("a");
+    bloom.insert(Vec::<bool>::new());
+    bloom.insert([0; 2]);
 
     // Querying whether a `BloomFilter` contains an element
     // never yields a false negative
-    let adds = capacity - 4;
-    for i in 0..adds {
-        bloom.add(i);
+    let inserts = capacity - 4;
+    for i in 0..inserts {
+        bloom.insert(i);
     }
 
     let mut false_negatives = 0;
-    for i in 0..adds {
+    for i in 0..inserts{
         if !bloom.contains(i) {
             false_negatives += 1;
         }
@@ -50,17 +50,20 @@ fn main() {
 
     // But it can yield some false positives
     let mut false_positives = 0;
-    for i in 0..adds {
-        if bloom.contains(adds + i) {
+    for i in 0..inserts{
+        if bloom.contains(inserts + i) {
             false_positives += 1;
         }
     }
     println!("False positives: {false_positives}");
-
+    
     // It is possible to get an *approximation* of the number of
     // `item`s stored in the `BloomFilter`
     let stored_items_approx = bloom.count_approx();
     println!("Approximately count of items stored: {stored_items_approx}");
+    
+    // Items can't be removed. But the `BloomFilter` can be reset.
+    bloom.reset();
 
     // We can also get some properties of the `BloomFilter` itself
     println!("Number of bits for the actual filter: {}", bloom.bit_count());

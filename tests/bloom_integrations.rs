@@ -12,20 +12,20 @@ mod tests {
         let b = Vec::<bool>::new();
         let c = [0; 2];
 
-        let add_count = capacity - 3;
+        let inserts = capacity - 3;
 
-        for i in 0..add_count {
-            bloom.add(i);
+        for i in 0..inserts {
+            bloom.insert(i);
         }
 
-        bloom.add(a);
-        bloom.add(&b);
-        bloom.add(c);
+        bloom.insert(a);
+        bloom.insert(&b);
+        bloom.insert(c);
 
         assert!(bloom.contains(a) == true);
         assert!(bloom.contains(b) == true);
         assert!(bloom.contains(c) == true);
-        for i in 0..add_count {
+        for i in 0..inserts {
             assert!(bloom.contains(i) == true);
         }
     }

@@ -48,7 +48,7 @@ impl Filter for BloomFilter {
     }
 
     /// Adds the `item` to the `BloomFilter`.
-    fn add(&mut self, item: impl Hash) -> &mut Self {
+    fn insert(&mut self, item: impl Hash) -> &mut Self {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
             self.filter.set(idx as usize, true);
@@ -76,6 +76,13 @@ impl Filter for BloomFilter {
     fn count_approx(&self) -> usize {
         let num_truthy_bits = self.filter.iter_ones().count();
         approximate_elems(self.bit_count, self.hash_fn_count, num_truthy_bits).round() as usize
+    }
+
+    // Resets the `BloomFilter` to its empty state.
+    fn reset(&mut self) -> &mut Self {
+        self.filter = bitvec![usize, Lsb0; 0; self.bit_count as usize];
+
+        self
     }
 
     /// Returns the amount of bits that constitute the `BloomFilter`'s actual `filter`.
