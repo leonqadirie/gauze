@@ -7,6 +7,8 @@ use std::{
 use twox_hash::XxHash64;
 
 use crate::Filter;
+use crate::FilterError;
+use crate::FilterError::InvalidParameter;
 
 static SEED: OnceLock<u64> = OnceLock::new();
 static OPTIMIZATION_STEP: f64 = 1.01;
@@ -25,29 +27,7 @@ pub struct BloomFilter {
 }
 
 impl Filter for BloomFilter {
-    /// Constructs a new `BloomFilter`.
-    ///
-    /// * `capacity`: Intended elements the Bloom filter shall be able to hold
-    /// * `target_err_rate`: The Bloom filter's acceptable false positive rate
-    fn new(capacity: usize, target_err_rate: f64) -> Result<BloomFilter, &'static str> {
-        if target_err_rate <= 0.0 && 1.0 >= target_err_rate {
-            return Err("error rate must be in exclusive range (0.0, 1.0)");
-        }
-
-        SEED.get_or_init(|| random::<u64>());
-
-        let (bit_count, hash_fn_count, error_rate) = optimize(capacity, target_err_rate);
-        let filter = bitvec![usize, Lsb0; 0; bit_count as usize];
-
-        Ok(BloomFilter {
-            bit_count,
-            hash_fn_count,
-            filter,
-            error_rate,
-        })
-    }
-
-    /// Adds the `item` to the `BloomFilter`.
+    /// Inserts the `item` into the `BloomFilter`.
     fn insert(&mut self, item: impl Hash) -> &mut Self {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
@@ -102,6 +82,37 @@ impl Filter for BloomFilter {
 }
 
 impl BloomFilter {
+    /// Constructs a new `BloomFilter`.
+    ///
+    /// * `capacity`: Intended elements the Bloom filter shall be able to hold
+    /// * `target_err_rate`: The Bloom filter's acceptable false positive rate
+    pub fn new(capacity: usize, target_err_rate: f64) -> Result<BloomFilter, FilterError> {
+        if capacity < 1 {
+            return Err(InvalidParameter {
+                expected: "1 <= capacity",
+                found: capacity.to_string(),
+            });
+        }
+        if target_err_rate <= 0.0 || 1.0 <= target_err_rate {
+            return Err(InvalidParameter {
+                expected: "0.0 < error rate < 1.0",
+                found: target_err_rate.to_string(),
+            });
+        }
+
+        SEED.get_or_init(|| random::<u64>());
+
+        let (bit_count, hash_fn_count, error_rate) = optimize(capacity, target_err_rate);
+        let filter = bitvec![usize, Lsb0; 0; bit_count as usize];
+
+        Ok(BloomFilter {
+            bit_count,
+            hash_fn_count,
+            filter,
+            error_rate,
+        })
+    }
+
     /// Calculates the indexes of a `BloomFilter`'s `filter` field of type `BitVec` for the `item`.
     fn get_bit_indexes<T>(&self, item: T) -> Vec<usize>
     where
@@ -216,5 +227,22 @@ mod tests {
         assert_eq!(1449, bloom.bit_count());
         assert_eq!(11, bloom.hash_fn_count());
         assert_eq!(0.0009855809404929945, bloom.error_rate());
+    }
+
+    #[test]
+    fn test_new_bloom_filter_wrong_parameters() {
+        let wrong_capacity = 0;
+        let wrong_target_err_rate_1 = 0.0;
+        let wrong_target_err_rate_2 = 1.0;
+        let wrong_target_err_rate_3 = -1.0;
+        let correct_capacity = 1;
+        let correct_target_err_rate = 0.5;
+
+        assert!(BloomFilter::new(wrong_capacity, wrong_target_err_rate_1).is_err());
+        assert!(BloomFilter::new(wrong_capacity, correct_target_err_rate).is_err());
+        assert!(BloomFilter::new(correct_capacity, wrong_target_err_rate_1).is_err());
+        assert!(BloomFilter::new(correct_capacity, wrong_target_err_rate_2).is_err());
+        assert!(BloomFilter::new(correct_capacity, wrong_target_err_rate_3).is_err());
+        assert!(BloomFilter::new(correct_capacity, correct_target_err_rate).is_ok());
     }
 }

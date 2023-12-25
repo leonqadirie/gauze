@@ -73,9 +73,22 @@
 //! ```
 
 use core::hash::Hash;
+use thiserror::Error;
+
+/// An error returned by a method provided by the `Filter` trait.
+#[derive(Error, Debug)]
+pub enum FilterError {
+    /// A method is called with invalid parameters.
+    #[error("invalid parameters (expected {expected:?}, found: {found:?})")]
+    InvalidParameter {
+        /// Expected parameter
+        expected: &'static str,
+        /// Provided parameter
+        found: String,
+    },
+}
 
 pub trait Filter {
-    fn new(capacity: usize, target_err_rate: f64) -> Result<BloomFilter, &'static str>;
     fn insert(&mut self, item: impl Hash) -> &mut Self;
     fn contains(&self, item: impl Hash) -> bool;
     fn count_approx(&self) -> usize;
