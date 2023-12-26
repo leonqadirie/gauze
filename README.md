@@ -7,6 +7,8 @@ These filters can claim that a given entry is
 * might be represented in the set.
 
 This crate is a work in progress and currently only implements Bloom filters.
+Currently, not all `Filter` trait methods are object safe.
+This *may* change in the future.
 
 ## Gauze in Action
 A simple Bloom filter implementation looks like this:

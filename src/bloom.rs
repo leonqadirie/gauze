@@ -65,7 +65,7 @@ impl Filter for BloomFilter {
         self
     }
 
-    /// Returns the amount of bits that constitute the `BloomFilter`'s actual `filter`.
+    /// Returns the number of bits that constitute the `BloomFilter`'s actual `filter` field.
     fn bit_count(&self) -> usize {
         self.bit_count
     }
@@ -170,7 +170,7 @@ fn optimize_values(
 ) -> (usize, usize, f64) {
     let error_rate = false_positive_rate(bits, capacity, hash_fns_count);
 
-    if bits.is_infinite() {
+    if bits == f64::MAX || bits.is_infinite() {
         return (bits as usize, hash_fns_count.ceil() as usize, error_rate);
     }
 

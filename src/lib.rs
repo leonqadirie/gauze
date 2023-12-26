@@ -7,6 +7,8 @@
 //! * might be represented in the set.
 //!
 //! This crate is a work in progress and currently only implements Bloom filters.
+//! Currently, not all `Filter` trait methods are object safe.
+//! This *may* change in the future.
 //!
 //! ## Gauze in Action
 //! A simple Bloom filter implementation looks like this:
@@ -72,6 +74,11 @@
 //! }
 //! ```
 
+#![deny(warnings)]
+#![warn(unused_imports)]
+#![warn(missing_docs)]
+#![warn(unused_crate_dependencies)]
+
 use core::hash::Hash;
 use thiserror::Error;
 
@@ -88,15 +95,35 @@ pub enum FilterError {
     },
 }
 
+/// The common interface of methods shared between all `gauze` filters.
+///
+/// Every filter adds their own constructor and possibly other methods based
+/// on their unique characteristics.
 pub trait Filter {
+    /// Inserts the `item` into the filter.
     fn insert(&mut self, item: impl Hash) -> &mut Self;
+
+    /// *Indicates* whether `item` is in the filter.
+    ///
+    /// Never yields false negatives.
+    /// Yields false positives roughly at the rate of the filter's `error_rate`.
     fn contains(&self, item: impl Hash) -> bool;
+
+    /// Returns an *approximation* of the number of elements added to the filter.
     fn count_approx(&self) -> usize;
+
+    /// Resets the filter to its empty state.
     fn reset(&mut self) -> &mut Self;
+
+    /// Returns the number of bits that constitute the actual `filter` field.
     fn bit_count(&self) -> usize;
+
+    /// Returns the filter's actual error rate.
     fn error_rate(&self) -> f64;
+
+    /// Returns the number of hash functions the filter uses.
     fn hash_fn_count(&self) -> usize;
 }
 
-pub mod bloom;
+mod bloom;
 pub use bloom::BloomFilter;
