@@ -1,13 +1,13 @@
 [package]
 name = "gauze"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT"
 authors = ["Leon Qadirie"]
 repository = "https://github.com/leonqadirie/gauze"
 homepage = "https://github.com/leonqadirie/gauze"
 readme = "README.md"
-description = "Probabilistic set membership filters with a simple interface - WIP"
+description = "Probabilistic set membership filters with a simple interface"
 keywords = ["filter", "bloom_filter"]
 
 [dependencies]
