@@ -6,9 +6,8 @@ use std::{
 };
 use twox_hash::XxHash64;
 
-use crate::Filter;
-use crate::FilterError;
-use crate::FilterError::InvalidParameter;
+use crate::FilterError::{self, InvalidParameter};
+use crate::{utils::float_to_usize, Filter};
 
 static SEED: OnceLock<u64> = OnceLock::new();
 static OPTIMIZATION_STEP: f64 = 1.01;
@@ -86,6 +85,8 @@ impl BloomFilter {
     ///
     /// * `capacity`: Intended elements the Bloom filter shall be able to hold
     /// * `target_err_rate`: The Bloom filter's acceptable false positive rate
+    ///
+    /// Fails for invalid parameters or if filter is too large for your architecture.
     pub fn new(capacity: usize, target_err_rate: f64) -> Result<BloomFilter, FilterError> {
         if capacity < 1 {
             return Err(InvalidParameter {
@@ -102,8 +103,10 @@ impl BloomFilter {
 
         SEED.get_or_init(|| random::<u64>());
 
-        let (bit_count, hash_fn_count, error_rate) = optimize(capacity, target_err_rate);
-        let filter = bitvec![usize, Lsb0; 0; bit_count as usize];
+        let (num_bits, hash_fn_count, error_rate) = optimize(capacity, target_err_rate);
+        let bit_count = num_bits?;
+        let hash_fn_count = hash_fn_count?;
+        let filter = bitvec![usize, Lsb0; 0; bit_count];
 
         Ok(BloomFilter {
             bit_count,
@@ -145,11 +148,17 @@ impl BloomFilter {
 /// * `target_err_rate`: The Bloom filter's acceptable false positive rate
 ///
 /// Returns *approximately* optimal (num_bits, hash_fn_count, error_rate).
-fn optimize(capacity: usize, target_err_rate: f64) -> (usize, usize, f64) {
+fn optimize(
+    capacity: usize,
+    target_err_rate: f64,
+) -> (Result<usize, FilterError>, Result<usize, FilterError>, f64) {
     let (num_bits, hash_fn_count, error_rate) =
         optimize_values(capacity as f64, capacity as f64 * 4.0, 2.0, target_err_rate);
 
-    (num_bits as usize, hash_fn_count as usize, error_rate)
+    let num_bits = float_to_usize(num_bits, stringify!(num_bits));
+    let hash_fn_count = float_to_usize(hash_fn_count, stringify!(hash_fn_count));
+
+    (num_bits, hash_fn_count, error_rate)
 }
 
 /// Recursive function to *approximate* optimal Bloom filter properties.
@@ -164,26 +173,26 @@ fn optimize(capacity: usize, target_err_rate: f64) -> (usize, usize, f64) {
 /// Returns *approximately* optimal (num_bits, hash_fn_count, error_rate).
 fn optimize_values(
     capacity: f64,
-    bits: f64,
+    num_bits: f64,
     hash_fns_count: f64,
     target_error_rate: f64,
-) -> (usize, usize, f64) {
-    let error_rate = false_positive_rate(bits, capacity, hash_fns_count);
+) -> (f64, f64, f64) {
+    let error_rate = false_positive_rate(num_bits, capacity, hash_fns_count);
 
-    if bits == f64::MAX || bits.is_infinite() {
-        return (bits as usize, hash_fns_count.ceil() as usize, error_rate);
+    if num_bits == f64::MAX || num_bits.is_infinite() {
+        return (num_bits, hash_fns_count.ceil(), error_rate);
     }
 
     let is_acceptable_error_rate = error_rate < target_error_rate;
     if !is_acceptable_error_rate {
         optimize_values(
             capacity,
-            (bits * OPTIMIZATION_STEP).ceil(),
-            optimal_hash_fn_count((bits * OPTIMIZATION_STEP).ceil(), capacity),
+            (num_bits * OPTIMIZATION_STEP).ceil(),
+            optimal_hash_fn_count((num_bits * OPTIMIZATION_STEP).ceil(), capacity),
             target_error_rate,
         )
     } else {
-        (bits as usize, hash_fns_count.ceil() as usize, error_rate)
+        (num_bits, hash_fns_count.ceil(), error_rate)
     }
 }
 

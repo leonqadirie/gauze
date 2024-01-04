@@ -93,6 +93,14 @@ pub enum FilterError {
         /// Provided parameter
         found: String,
     },
+    /// Misrepresentation of a filter characteristic through a lossy cast of numerical values.
+    #[error("mismatched numerical sizes (casted {argument:?} of value {value:?} into usize)")]
+    ConversionError {
+        /// Name of casted argument
+        argument: &'static str,
+        /// Value of casted argument
+        value: f64,
+    },
 }
 
 /// The common interface of methods shared between all `gauze` filters.
@@ -126,4 +134,5 @@ pub trait Filter {
 }
 
 mod bloom;
+mod utils;
 pub use bloom::BloomFilter;
