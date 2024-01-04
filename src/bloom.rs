@@ -116,7 +116,8 @@ impl BloomFilter {
         })
     }
 
-    /// Calculates the indexes of a `BloomFilter`'s `filter` field of type `BitVec` for the `item`.
+    /// Given `item` that is `Hash`, calculates its indexes in the `BloomFilter`'s `filter` field.
+    /// This can be used for insertion or to check if its likely included.
     fn get_bit_indexes<T>(&self, item: T) -> Vec<usize>
     where
         T: Hash,
@@ -216,8 +217,8 @@ fn optimal_hash_fn_count(bits: f64, capacity: f64) -> f64 {
 /// Approximates the number of items in the filter
 fn approximate_elems(bits: usize, hash_fns_count: usize, num_truthy_bits: usize) -> f64 {
     let m = bits as f64;
-    let x = num_truthy_bits as f64;
     let k = hash_fns_count as f64;
+    let x = num_truthy_bits as f64;
 
     -1.0 * (m * (1.0 - x / m).log(std::f64::consts::E)) / k
 }
