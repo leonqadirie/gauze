@@ -224,6 +224,7 @@ fn approximate_elems(bits: usize, hash_fns_count: usize, num_truthy_bits: usize)
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -253,5 +254,12 @@ mod tests {
         assert!(BloomFilter::new(correct_capacity, wrong_target_err_rate_2).is_err());
         assert!(BloomFilter::new(correct_capacity, wrong_target_err_rate_3).is_err());
         assert!(BloomFilter::new(correct_capacity, correct_target_err_rate).is_ok());
+    }
+
+    #[test]
+    fn test_new_bloom_filter_capacity_too_large() {
+        let bloom = BloomFilter::new(usize::MAX, 0.999);
+
+        assert!(bloom.is_err());
     }
 }
