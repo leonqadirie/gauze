@@ -262,4 +262,34 @@ mod tests {
 
         assert!(bloom.is_err());
     }
+    #[test]
+    fn test_false_positive_rate() {
+        let bits = 127.0;
+        let capacity = 10.0;
+        let hash_fn_count = 12.3;
+
+        let false_positive_rate = false_positive_rate(bits, capacity, hash_fn_count);
+        println!("{false_positive_rate}");
+
+        assert_eq!(false_positive_rate, 0.004227169523530584);
+    }
+
+    #[test]
+    fn test_optimal_hash_fn_count() {
+        let bits = 127.0;
+        let capacity = 10.0;
+
+        let optimal_hash_fn_count = optimal_hash_fn_count(bits, capacity);
+        assert_eq!(optimal_hash_fn_count, 8.802969193111304);
+    }
+
+    #[test]
+    fn test_approximate_elems() {
+        let m = 100;
+        let k = 9;
+        let x = 50;
+
+        let elems_count = approximate_elems(m, k, x);
+        assert_eq!(elems_count, 7.701635339554948);
+    }
 }
