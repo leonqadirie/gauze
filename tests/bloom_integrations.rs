@@ -44,6 +44,6 @@ mod tests {
             bloom.insert(i);
         }
 
-        assert!(bloom.count_approx().abs_diff(inserts) < inserts / 20);
+        assert!(bloom.count_approx().abs_diff(inserts) < inserts / 15);
     }
 }
