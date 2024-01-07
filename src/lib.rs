@@ -8,8 +8,8 @@
 //!
 //! This crate is a work in progress and currently only implements Bloom filters.
 //!
-//! Currently, not all `Filter` trait methods are object safe.
-//! This *may* change in the future.
+//! If needed, the extension trait `DynFilter` enables object-safe,
+//! dynamically dispatched variants of `insert` and `contains`.
 //!
 //! ## Gauze in Action
 //! A simple Bloom filter implementation looks like this:
@@ -153,7 +153,7 @@ pub trait Filter {
     fn hash_fn_count(&self) -> usize;
 }
 
-/// The extension interface of methods shared between `gauze` filters.
+/// An extension trait to `Filter`.
 ///
 /// It adds dynamically dispatched alternatives for the `insert` and `contains` methods.
 pub trait DynFilter {

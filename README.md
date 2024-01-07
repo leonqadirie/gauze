@@ -8,8 +8,8 @@ These filters can claim that a given entry is
 
 This crate is a work in progress and currently only implements Bloom filters.
 
-Currently, not all `Filter` trait methods are object safe.
-This *may* change in the future.
+If needed, the extension trait `DynFilter` enables object-safe,
+dynamically dispatched variants of `insert` and `contains`.
 
 ## Gauze in Action
 A simple Bloom filter implementation looks like this:
