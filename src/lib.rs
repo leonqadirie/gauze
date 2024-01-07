@@ -80,7 +80,7 @@
 #![warn(missing_docs)]
 #![warn(unused_crate_dependencies)]
 
-use core::hash::Hash;
+use core::hash::{Hash, Hasher};
 use thiserror::Error;
 
 /// An error returned by a method provided by the `Filter` trait.
@@ -104,13 +104,32 @@ pub enum FilterError {
     },
 }
 
+/// A wrapper to create an object-safe Hash trait.
+pub trait DynHash {
+    /// Wraps the `.hash()` method for dynamic dispatch.
+    fn dyn_hash(&self, state: &mut dyn Hasher);
+}
+
+/// Implement the wrapper for all suitable types.
+impl<T: Hash + ?Sized> DynHash for T {
+    fn dyn_hash(&self, mut state: &mut dyn Hasher) {
+        self.hash(&mut state);
+    }
+}
+
+impl Hash for dyn DynHash {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.dyn_hash(state);
+    }
+}
+
 /// The common interface of methods shared between all `gauze` filters.
 ///
 /// Every filter adds their own constructor and possibly other methods based
 /// on their unique characteristics.
 pub trait Filter {
     /// Inserts the `item` into the filter.
-    fn insert(&mut self, item: impl Hash) -> &mut Self;
+    fn insert(&mut self, item: impl Hash);
 
     /// *Indicates* whether `item` is in the filter.
     ///
@@ -132,6 +151,20 @@ pub trait Filter {
 
     /// Returns the number of hash functions the filter uses.
     fn hash_fn_count(&self) -> usize;
+}
+
+/// The extension interface of methods shared between `gauze` filters.
+///
+/// It adds dynamically dispatched alternatives for the `insert` and `contains` methods.
+pub trait DynFilter {
+    /// Inserts the `item` into the filter.
+    fn insert(&mut self, item: Box<dyn DynHash>);
+
+    /// *Indicates* whether `item` is in the filter.
+    ///
+    /// Never yields false negatives.
+    /// Yields false positives roughly at the rate of the filter's `error_rate`.
+    fn contains(&self, item: Box<dyn DynHash>) -> bool;
 }
 
 mod bloom;

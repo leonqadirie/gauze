@@ -6,8 +6,11 @@ use std::{
 };
 use twox_hash::XxHash64;
 
-use crate::FilterError::{self, InvalidParameter};
 use crate::{utils::float_to_usize, Filter};
+use crate::{
+    DynFilter, DynHash,
+    FilterError::{self, InvalidParameter},
+};
 
 static SEED: OnceLock<u64> = OnceLock::new();
 static OPTIMIZATION_STEP: f64 = 1.01;
@@ -27,13 +30,11 @@ pub struct BloomFilter {
 
 impl Filter for BloomFilter {
     /// Inserts the `item` into the `BloomFilter`.
-    fn insert(&mut self, item: impl Hash) -> &mut Self {
+    fn insert(&mut self, item: impl Hash) {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
             self.filter.set(idx as usize, true);
         }
-
-        self
     }
 
     /// *Indicates* whether `item` is in the `BloomFilter`.
@@ -77,6 +78,26 @@ impl Filter for BloomFilter {
     // Returns the number of hash functions the `BloomFilter` uses.
     fn hash_fn_count(&self) -> usize {
         self.hash_fn_count
+    }
+}
+
+impl DynFilter for BloomFilter {
+    fn insert(&mut self, item: Box<dyn DynHash>) {
+        let idxes = self.get_bit_indexes(item);
+        for idx in idxes {
+            self.filter.set(idx as usize, true);
+        }
+    }
+
+    fn contains(&self, item: Box<dyn DynHash>) -> bool {
+        let idxes = self.get_bit_indexes(item);
+        for idx in idxes {
+            if self.filter.get(idx).expect("No bit at index.") == false {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
