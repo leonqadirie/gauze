@@ -2,7 +2,7 @@ use bitvec::{bitvec, prelude::*};
 use rand::random;
 use std::{
     hash::{Hash, Hasher},
-    sync::OnceLock,
+    sync::LazyLock,
 };
 use twox_hash::XxHash64;
 
@@ -12,7 +12,7 @@ use crate::{
     FilterError::{self, InvalidParameter},
 };
 
-static SEED: OnceLock<u64> = OnceLock::new();
+static SEED: LazyLock<u64> = LazyLock::new(|| random::<u64>());
 static OPTIMIZATION_STEP: f64 = 1.01;
 
 /// A Bloom filter is a space-efficient probabilistic data structure to test
@@ -122,8 +122,6 @@ impl BloomFilter {
             });
         }
 
-        SEED.get_or_init(|| random::<u64>());
-
         let (num_bits, hash_fn_count, error_rate) = optimize(capacity, target_err_rate);
         let bit_count = num_bits?;
         let hash_fn_count = hash_fn_count?;
@@ -145,7 +143,7 @@ impl BloomFilter {
     {
         // Kirsch-Mitzenmacher double hashing
         let mut hasher_1 = XxHash64::default();
-        let mut hasher_2 = XxHash64::with_seed(*SEED.get().expect("couldn't get seed."));
+        let mut hasher_2 = XxHash64::with_seed(*SEED);
 
         item.hash(&mut hasher_1);
         item.hash(&mut hasher_2);
