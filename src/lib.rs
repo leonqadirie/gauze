@@ -137,20 +137,8 @@ pub trait Filter {
     /// Yields false positives roughly at the rate of the filter's `error_rate`.
     fn contains(&self, item: impl Hash) -> bool;
 
-    /// Returns an *approximation* of the number of elements added to the filter.
-    fn count_approx(&self) -> usize;
-
     /// Resets the filter to its empty state.
     fn reset(&mut self) -> &mut Self;
-
-    /// Returns the number of bits that constitute the actual `filter` field.
-    fn bit_count(&self) -> usize;
-
-    /// Returns the filter's actual error rate.
-    fn error_rate(&self) -> f64;
-
-    /// Returns the number of hash functions the filter uses.
-    fn hash_fn_count(&self) -> usize;
 }
 
 /// An extension trait to `Filter`.

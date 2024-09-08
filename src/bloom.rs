@@ -13,7 +13,7 @@ use crate::{
 };
 
 static SEED: LazyLock<u64> = LazyLock::new(|| random::<u64>());
-static OPTIMIZATION_STEP: f64 = 1.01;
+const OPTIMIZATION_STEP: f64 = 1.01;
 
 /// A Bloom filter is a space-efficient probabilistic data structure to test
 /// whether an item is a member of a set.
@@ -40,7 +40,8 @@ impl Filter for BloomFilter {
     /// *Indicates* whether `item` is in the `BloomFilter`.
     ///
     /// Never yields false negatives.
-    /// Yields false positives roughly at the rate of the `Bloomfilter`'s `error_rate`.
+    /// Yields false positives roughly up to the rate of the `Bloomfilter`'s `error_rate`
+    /// unless the filter's maximum capacity defined at construction is exceeded.
     fn contains(&self, item: impl Hash) -> bool {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
@@ -52,32 +53,11 @@ impl Filter for BloomFilter {
         true
     }
 
-    /// Returns an *approximation* of the number of elements added to the `BloomFilter`.
-    fn count_approx(&self) -> usize {
-        let num_truthy_bits = self.filter.iter_ones().count();
-        approximate_elems(self.bit_count, self.hash_fn_count, num_truthy_bits).round() as usize
-    }
-
     // Resets the `BloomFilter` to its empty state.
     fn reset(&mut self) -> &mut Self {
         self.filter = bitvec![usize, Lsb0; 0; self.bit_count as usize];
 
         self
-    }
-
-    /// Returns the number of bits that constitute the `BloomFilter`'s actual `filter` field.
-    fn bit_count(&self) -> usize {
-        self.bit_count
-    }
-
-    /// Returns the `BloomFilter`'s actual error rate.
-    fn error_rate(&self) -> f64 {
-        self.error_rate
-    }
-
-    // Returns the number of hash functions the `BloomFilter` uses.
-    fn hash_fn_count(&self) -> usize {
-        self.hash_fn_count
     }
 }
 
@@ -135,7 +115,31 @@ impl BloomFilter {
         })
     }
 
-    /// Given `item` that is `Hash`, calculates its indexes in the `BloomFilter`'s `filter` field.
+    /// Returns an *approximation* of the number of elements added to the `BloomFilter`.
+    pub fn count_approx(&self) -> usize {
+        let num_truthy_bits = self.filter.iter_ones().count();
+        approximate_elems(self.bit_count, self.hash_fn_count, num_truthy_bits).round() as usize
+    }
+
+    /// Returns the number of bits that constitute the `BloomFilter`'s actual `filter` field.
+    pub fn bit_count(&self) -> usize {
+        self.bit_count
+    }
+
+    /// Returns the `BloomFilter`'s actual error rate.
+    pub fn error_rate(&self) -> f64 {
+        self.error_rate
+    }
+
+    /// Returns the number of hash functions the `BloomFilter` uses.
+    pub fn hash_fn_count(&self) -> usize {
+        self.hash_fn_count
+    }
+
+    /// Calculates an `item`'s indexes in the `BloomFilter`'s `filter` field.
+    ///
+    /// * `item`: The item for which the indexes shall be calculated
+    ///
     /// This can be used for insertion or to check if its likely included.
     fn get_bit_indexes<T>(&self, item: T) -> Vec<usize>
     where
@@ -190,7 +194,7 @@ fn optimize(
 /// * `hash_fns_count`: The number of hash functions the filter uses
 /// * `target_err_rate`: The Bloom filter's acceptable false positive rate
 ///
-/// Returns *approximately* optimal (num_bits, hash_fn_count, error_rate).
+/// Returns an *approximately* optimal `(num_bits, hash_fn_count, error_rate)`.
 fn optimize_values(
     capacity: f64,
     num_bits: f64,
