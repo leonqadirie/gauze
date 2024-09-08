@@ -168,5 +168,6 @@ pub trait DynFilter {
 }
 
 mod bloom;
+mod cuckoo;
 mod utils;
 pub use bloom::BloomFilter;
