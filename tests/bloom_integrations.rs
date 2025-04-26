@@ -24,11 +24,11 @@ mod tests {
         bloom.insert(&b);
         bloom.insert(c);
 
-        assert!(bloom.contains(a) == true);
-        assert!(bloom.contains(b) == true);
-        assert!(bloom.contains(c) == true);
+        assert!(bloom.might_contain(a) == true);
+        assert!(bloom.might_contain(b) == true);
+        assert!(bloom.might_contain(c) == true);
         for i in 0..inserts {
-            assert!(bloom.contains(i) == true);
+            assert!(bloom.might_contain(i) == true);
         }
     }
 
@@ -54,11 +54,11 @@ mod tests {
         bloom.insert(Box::new(b.clone()));
         bloom.insert(Box::new(c));
 
-        assert!(bloom.contains(Box::new(a)) == true);
-        assert!(bloom.contains(Box::new(b)) == true);
-        assert!(bloom.contains(Box::new(c)) == true);
+        assert!(bloom.might_contain(Box::new(a)) == true);
+        assert!(bloom.might_contain(Box::new(b)) == true);
+        assert!(bloom.might_contain(Box::new(c)) == true);
         for i in 0..inserts {
-            assert!(bloom.contains(Box::new(i)) == true);
+            assert!(bloom.might_contain(Box::new(i)) == true);
         }
     }
 

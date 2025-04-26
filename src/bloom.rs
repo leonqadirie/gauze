@@ -42,7 +42,7 @@ impl Filter for BloomFilter {
     /// Never yields false negatives.
     /// Yields false positives roughly up to the rate of the `Bloomfilter`'s `error_rate`
     /// unless the filter's maximum capacity defined at construction is exceeded.
-    fn contains(&self, item: impl Hash) -> bool {
+    fn might_contain(&self, item: impl Hash) -> bool {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
             if self.filter.get(idx).expect("No bit at index.") == false {
@@ -69,7 +69,7 @@ impl DynFilter for BloomFilter {
         }
     }
 
-    fn contains(&self, item: Box<dyn DynHash>) -> bool {
+    fn might_contain(&self, item: Box<dyn DynHash>) -> bool {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
             if self.filter.get(idx).expect("No bit at index.") == false {

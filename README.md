@@ -45,7 +45,7 @@ fn main() {
 
     let mut false_negatives = 0;
     for i in 0..inserts{
-        if !bloom.contains(i) {
+        if !bloom.might_contain(i) {
             false_negatives += 1;
         }
     }
@@ -54,7 +54,7 @@ fn main() {
     // But it can yield some false positives
     let mut false_positives = 0;
     for i in 0..inserts{
-        if bloom.contains(inserts + i) {
+        if bloom.might_contain(inserts + i) {
             false_positives += 1;
         }
     }

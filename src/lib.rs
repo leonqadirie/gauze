@@ -45,7 +45,7 @@
 //!
 //!     let mut false_negatives = 0;
 //!     for i in 0..inserts {
-//!         if !bloom.contains(i) {
+//!         if !bloom.might_contain(i) {
 //!             false_negatives += 1;
 //!         }
 //!     }
@@ -54,7 +54,7 @@
 //!     // But it can yield some false positives
 //!     let mut false_positives = 0;
 //!     for i in 0..inserts {
-//!         if bloom.contains(inserts + i) {
+//!         if bloom.might_contain(inserts + i) {
 //!             false_positives += 1;
 //!         }
 //!     }
@@ -135,7 +135,7 @@ pub trait Filter {
     ///
     /// Never yields false negatives.
     /// Yields false positives roughly at the rate of the filter's `error_rate`.
-    fn contains(&self, item: impl Hash) -> bool;
+    fn might_contain(&self, item: impl Hash) -> bool;
 
     /// Resets the filter to its empty state.
     fn reset(&mut self) -> &mut Self;
@@ -152,7 +152,7 @@ pub trait DynFilter {
     ///
     /// Never yields false negatives.
     /// Yields false positives roughly at the rate of the filter's `error_rate`.
-    fn contains(&self, item: Box<dyn DynHash>) -> bool;
+    fn might_contain(&self, item: Box<dyn DynHash>) -> bool;
 }
 
 mod bloom;
