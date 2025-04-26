@@ -59,19 +59,19 @@ fn main() {
         }
     }
     println!("False positives: {false_positives}");
-    
+
     // It is possible to get an *approximation* of the number of
     // `item`s stored in the `BloomFilter`
     let stored_items_approx = bloom.count_approx();
     println!("Approximately count of items stored: {stored_items_approx}");
-    
+
     // Items can't be removed. But the `BloomFilter` can be reset.
     bloom.reset();
 
     // We can also get some properties of the `BloomFilter` itself
     println!("Number of bits for the actual filter: {}", bloom.bit_size());
     println!("Number of hash functions used: {}", bloom.hash_fn_count());
-    println!("The filter's actual error rate: {}", bloom.error_rate());
+    println!("The filter's actual error rate: {}", bloom.false_positive_rate());
 }
 ```
 

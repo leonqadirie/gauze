@@ -127,7 +127,7 @@ impl BloomFilter {
     }
 
     /// Returns the `BloomFilter`'s actual error rate.
-    pub fn error_rate(&self) -> f64 {
+    pub fn false_positive_rate(&self) -> f64 {
         self.false_positive_rate
     }
 
@@ -260,7 +260,7 @@ mod tests {
 
         assert_eq!(1449, bloom.bit_size());
         assert_eq!(11, bloom.hash_fn_count());
-        assert_eq!(0.0009855809404929945, bloom.error_rate());
+        assert_eq!(0.0009855809404929945, bloom.false_positive_rate());
     }
 
     #[test]
