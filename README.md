@@ -8,7 +8,7 @@ These filters can claim that a given entry is
 
 This crate is a work in progress and currently only implements Bloom filters.
 
-If needed, the extension trait `DynFilter` enables object-safe,
+If needed, the extension trait `DynFilter` enables `dyn`-compatible,
 dynamically dispatched variants of `insert` and `contains`.
 
 ## Gauze in Action
