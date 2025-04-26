@@ -1,19 +1,20 @@
 use bitvec::{bitvec, prelude::*};
 use rand::random;
 use std::{
+    f64::consts::LN_2,
     hash::{Hash, Hasher},
     sync::LazyLock,
 };
 use twox_hash::XxHash64;
 
-use crate::{utils::float_to_usize, Filter};
+use crate::Filter;
 use crate::{
     DynFilter, DynHash,
-    FilterError::{self, InvalidParameter},
+    FilterError::{self, FilterTooLarge, InvalidParameter},
 };
 
 static SEED: LazyLock<u64> = LazyLock::new(|| random::<u64>());
-const OPTIMIZATION_STEP: f64 = 1.01;
+const MAX_FILTER_BIT_SIZE: usize = 200_000_000_000;
 
 /// A Bloom filter is a space-efficient probabilistic data structure to test
 /// whether an item is a member of a set.
@@ -102,13 +103,17 @@ impl BloomFilter {
             });
         }
 
-        let (num_bits, hash_fn_count, error_rate) = optimize(capacity, target_err_rate);
-        let bit_count = num_bits?;
-        let hash_fn_count = hash_fn_count?;
-        let filter = bitvec![usize, Lsb0; 0; bit_count];
+        let optimal_bit_size = optimal_bit_size(capacity, target_err_rate)?;
+        let hash_fn_count = optimal_hash_fn_count(optimal_bit_size, capacity);
+        let bit_size = match optimal_bit_size % hash_fn_count {
+            0 => optimal_bit_size,
+            _ => optimal_bit_size + (hash_fn_count - optimal_bit_size % hash_fn_count),
+        };
+        let false_positive_rate = false_positive_rate(bit_size, capacity, hash_fn_count);
+        let array = bitvec![usize, Lsb0; 0; bit_size];
 
         Ok(BloomFilter {
-            bit_size: bit_count,
+            bit_size,
             hash_fn_count,
             array,
             false_positive_rate,
@@ -165,61 +170,6 @@ impl BloomFilter {
     }
 }
 
-/// Proxy function that relays the input to the recursive function `optimize_values`.
-/// Used in Bloom filter construction to optimize filter properties.
-///
-/// * `capacity`: Intended elements the Bloom filter shall be able to hold
-/// * `target_err_rate`: The Bloom filter's acceptable false positive rate
-///
-/// Returns *approximately* optimal (num_bits, hash_fn_count, error_rate).
-fn optimize(
-    capacity: usize,
-    target_err_rate: f64,
-) -> (Result<usize, FilterError>, Result<usize, FilterError>, f64) {
-    let (num_bits, hash_fn_count, error_rate) =
-        optimize_values(capacity as f64, capacity as f64 * 4.0, 2.0, target_err_rate);
-
-    let num_bits = float_to_usize(num_bits, stringify!(num_bits));
-    let hash_fn_count = float_to_usize(hash_fn_count, stringify!(hash_fn_count));
-
-    (num_bits, hash_fn_count, error_rate)
-}
-
-/// Recursive function to *approximate* optimal Bloom filter properties.
-/// Evaluates filter properties for the input parameters and optimizes them if needed.
-/// Used in Bloom filter construction.
-///
-/// * `capacity`: Intended elements the Bloom filter shall be able to hold
-/// * `bits`: The number of bits that constitute the filter
-/// * `hash_fns_count`: The number of hash functions the filter uses
-/// * `target_err_rate`: The Bloom filter's acceptable false positive rate
-///
-/// Returns an *approximately* optimal `(num_bits, hash_fn_count, error_rate)`.
-fn optimize_values(
-    capacity: f64,
-    num_bits: f64,
-    hash_fns_count: f64,
-    target_error_rate: f64,
-) -> (f64, f64, f64) {
-    let error_rate = false_positive_rate(num_bits, capacity, hash_fns_count);
-
-    if num_bits == f64::MAX || num_bits.is_infinite() {
-        return (num_bits, hash_fns_count.ceil(), error_rate);
-    }
-
-    let is_acceptable_error_rate = error_rate < target_error_rate;
-    if !is_acceptable_error_rate {
-        optimize_values(
-            capacity,
-            (num_bits * OPTIMIZATION_STEP).ceil(),
-            optimal_hash_fn_count((num_bits * OPTIMIZATION_STEP).ceil(), capacity),
-            target_error_rate,
-        )
-    } else {
-        (num_bits, hash_fns_count.ceil(), error_rate)
-    }
-}
-
 /// Calculates the false positive rate of a Bloom filter with the properties of the parameters.
 /// Used in filter construction.
 ///
@@ -228,13 +178,28 @@ fn optimize_values(
 /// * `hash_fns_count`: The number of hash functions the filter uses
 ///
 /// Returns an `f64` as the expected false positive rate.
-fn false_positive_rate(bits: f64, capacity: f64, hash_fns_count: f64) -> f64 {
-    (1.0 - (-hash_fns_count * (capacity + 0.5) / (bits - 1.0)).exp()).powf(hash_fns_count)
+fn false_positive_rate(bit_size: usize, capacity: usize, hash_fn_count: usize) -> f64 {
+    (1.0 - (-1.0 * hash_fn_count as f64 * (capacity as f64 + 0.5) / (bit_size as f64 - 1.0)).exp())
+        .powf(hash_fn_count as f64)
+}
+
+/// Calculates the optimal bit size
+fn optimal_bit_size(capacity: usize, target_err_rate: f64) -> Result<usize, FilterError> {
+    let bit_size = (-1.0 * capacity as f64 * target_err_rate.ln() / LN_2.powi(2)).ceil();
+
+    if bit_size == f64::INFINITY || bit_size.is_infinite() || bit_size as usize > 800_000_000_000 {
+        return Err(FilterTooLarge {
+            bit_size: bit_size as usize,
+            max_size: MAX_FILTER_BIT_SIZE,
+        });
+    }
+
+    Ok(bit_size as usize)
 }
 
 /// Calculates the optimal number of hash functions
-fn optimal_hash_fn_count(bits: f64, capacity: f64) -> f64 {
-    (bits / capacity) * 2_f64.ln()
+fn optimal_hash_fn_count(bit_size: usize, capacity: usize) -> usize {
+    (((bit_size as f64 / capacity as f64) * LN_2).round() as usize).max(1)
 }
 
 /// Approximates the number of items in the filter
@@ -258,9 +223,9 @@ mod tests {
         let bloom =
             BloomFilter::new(capacity, target_err_rate).expect("couldn't construct Bloom filter");
 
-        assert_eq!(1449, bloom.bit_size());
-        assert_eq!(11, bloom.hash_fn_count());
-        assert_eq!(0.0009855809404929945, bloom.false_positive_rate());
+        assert_eq!(1440, bloom.bit_size());
+        assert_eq!(10, bloom.hash_fn_count());
+        assert_eq!(0.0010289652567641162, bloom.false_positive_rate());
     }
 
     #[test]
@@ -288,23 +253,23 @@ mod tests {
     }
     #[test]
     fn test_false_positive_rate() {
-        let bits = 127.0;
-        let capacity = 10.0;
-        let hash_fn_count = 12.3;
+        let bits = 127;
+        let capacity = 10;
+        let hash_fn_count = 12;
 
         let false_positive_rate = false_positive_rate(bits, capacity, hash_fn_count);
         println!("{false_positive_rate}");
 
-        assert_eq!(false_positive_rate, 0.004227169523530584);
+        assert_eq!(false_positive_rate, 0.0040700428771982405);
     }
 
     #[test]
     fn test_optimal_hash_fn_count() {
-        let bits = 127.0;
-        let capacity = 10.0;
+        let bit_size = 127;
+        let capacity = 10;
 
-        let optimal_hash_fn_count = optimal_hash_fn_count(bits, capacity);
-        assert_eq!(optimal_hash_fn_count, 8.802969193111304);
+        let optimal_hash_fn_count = optimal_hash_fn_count(bit_size, capacity);
+        assert_eq!(optimal_hash_fn_count, 9);
     }
 
     #[test]

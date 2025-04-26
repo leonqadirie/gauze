@@ -69,10 +69,9 @@
 //!     bloom.reset();
 //!
 //!     // We can also get some properties of the `BloomFilter` itself
-//!     println!("Number of bits for the actual filter: {}", bloom.bit_count());
 //!     println!("Number of bits for the actual filter: {}", bloom.bit_size());
 //!     println!("Number of hash functions used: {}", bloom.hash_fn_count());
-//!     println!("The filter's actual error rate: {}", bloom.error_rate());
+//!     println!("The filter's actual error rate: {}", bloom.false_positive_rate());
 //! }
 //! ```
 
@@ -94,6 +93,14 @@ pub enum FilterError {
         expected: &'static str,
         /// Provided parameter
         found: String,
+    },
+    /// A method is called with invalid parameters.
+    #[error("filter too large (allows {max_size:?} bits, got: {bit_size:?})")]
+    FilterTooLarge {
+        /// Calculated filter size
+        bit_size: usize,
+        /// Max filter size
+        max_size: usize,
     },
     /// Misrepresentation of a filter characteristic through a lossy cast of numerical values.
     #[error("mismatched numerical sizes (casted {argument:?} of value {value:?} into usize)")]
@@ -157,5 +164,4 @@ pub trait DynFilter {
 }
 
 mod bloom;
-mod utils;
 pub use bloom::BloomFilter;
