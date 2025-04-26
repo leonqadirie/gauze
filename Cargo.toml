@@ -12,6 +12,6 @@ keywords = ["filter", "bloom_filter"]
 
 [dependencies]
 bitvec = { version = "1.0.1", features = ["alloc"] }
-rand = "0.8.5"
-thiserror = "1.0.52"
-twox-hash = "1.6.3"
+rand = "0.9"
+thiserror = "2.0"
+twox-hash = "2.0"
