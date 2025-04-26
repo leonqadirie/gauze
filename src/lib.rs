@@ -70,6 +70,7 @@
 //!
 //!     // We can also get some properties of the `BloomFilter` itself
 //!     println!("Number of bits for the actual filter: {}", bloom.bit_count());
+//!     println!("Number of bits for the actual filter: {}", bloom.bit_size());
 //!     println!("Number of hash functions used: {}", bloom.hash_fn_count());
 //!     println!("The filter's actual error rate: {}", bloom.error_rate());
 //! }

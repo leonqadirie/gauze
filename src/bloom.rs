@@ -25,7 +25,7 @@ pub struct BloomFilter {
     filter: BitVec,
     error_rate: f64,
     hash_fn_count: usize,
-    bit_count: usize,
+    bit_size: usize,
 }
 
 impl Filter for BloomFilter {
@@ -55,7 +55,7 @@ impl Filter for BloomFilter {
 
     // Resets the `BloomFilter` to its empty state.
     fn reset(&mut self) -> &mut Self {
-        self.filter = bitvec![usize, Lsb0; 0; self.bit_count as usize];
+        self.filter = bitvec![usize, Lsb0; 0; self.bit_size as usize];
 
         self
     }
@@ -108,7 +108,7 @@ impl BloomFilter {
         let filter = bitvec![usize, Lsb0; 0; bit_count];
 
         Ok(BloomFilter {
-            bit_count,
+            bit_size: bit_count,
             hash_fn_count,
             filter,
             error_rate,
@@ -118,12 +118,12 @@ impl BloomFilter {
     /// Returns an *approximation* of the number of elements added to the `BloomFilter`.
     pub fn count_approx(&self) -> usize {
         let num_truthy_bits = self.filter.iter_ones().count();
-        approximate_elems(self.bit_count, self.hash_fn_count, num_truthy_bits).round() as usize
+        approximate_elems(self.bit_size, self.hash_fn_count, num_truthy_bits).round() as usize
     }
 
     /// Returns the number of bits that constitute the `BloomFilter`'s actual `filter` field.
-    pub fn bit_count(&self) -> usize {
-        self.bit_count
+    pub fn bit_size(&self) -> usize {
+        self.bit_size
     }
 
     /// Returns the `BloomFilter`'s actual error rate.
@@ -158,7 +158,7 @@ impl BloomFilter {
         let mut acc = vec![];
         for i in 0..self.hash_fn_count {
             let idx = ((hash_1).wrapping_add((i as u64).wrapping_mul(hash_2))
-                % self.bit_count as u64) as usize;
+                % self.bit_size as u64) as usize;
             acc.push(idx);
         }
         acc
@@ -258,7 +258,7 @@ mod tests {
         let bloom =
             BloomFilter::new(capacity, target_err_rate).expect("couldn't construct Bloom filter");
 
-        assert_eq!(1449, bloom.bit_count());
+        assert_eq!(1449, bloom.bit_size());
         assert_eq!(11, bloom.hash_fn_count());
         assert_eq!(0.0009855809404929945, bloom.error_rate());
     }
