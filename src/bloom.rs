@@ -27,6 +27,7 @@ pub struct BloomFilter {
     false_positive_rate: f64,
     hash_fn_count: usize,
     bit_size: usize,
+    chunk_size: usize,
 }
 
 impl Filter for BloomFilter {
@@ -110,6 +111,7 @@ impl BloomFilter {
             _ => optimal_bit_size + (hash_fn_count - optimal_bit_size % hash_fn_count),
         };
         let false_positive_rate = false_positive_rate(bit_size, capacity, hash_fn_count);
+        let chunk_size = bit_size / hash_fn_count;
         let array = bitvec![usize, Lsb0; 0; bit_size];
 
         Ok(BloomFilter {
@@ -117,6 +119,7 @@ impl BloomFilter {
             hash_fn_count,
             array,
             false_positive_rate,
+            chunk_size,
         })
     }
 
@@ -162,8 +165,9 @@ impl BloomFilter {
 
         let mut acc = vec![];
         for i in 0..self.hash_fn_count {
-            let idx = ((hash_1).wrapping_add((i as u64).wrapping_mul(hash_2))
-                % self.bit_size as u64) as usize;
+            let idx = i * self.chunk_size
+                + ((hash_1).wrapping_add((i as u64).wrapping_mul(hash_2)) % self.chunk_size as u64)
+                    as usize;
             acc.push(idx);
         }
         acc
