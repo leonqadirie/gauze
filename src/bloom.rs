@@ -22,8 +22,8 @@ const OPTIMIZATION_STEP: f64 = 1.01;
 /// Items can only be added, not deleted.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct BloomFilter {
-    filter: BitVec,
-    error_rate: f64,
+    array: BitVec,
+    false_positive_rate: f64,
     hash_fn_count: usize,
     bit_size: usize,
 }
@@ -33,7 +33,7 @@ impl Filter for BloomFilter {
     fn insert(&mut self, item: impl Hash) {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
-            self.filter.set(idx as usize, true);
+            self.array.set(idx as usize, true);
         }
     }
 
@@ -45,7 +45,7 @@ impl Filter for BloomFilter {
     fn might_contain(&self, item: impl Hash) -> bool {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
-            if self.filter.get(idx).expect("No bit at index.") == false {
+            if self.array.get(idx).expect("No bit at index.") == false {
                 return false;
             }
         }
@@ -55,7 +55,7 @@ impl Filter for BloomFilter {
 
     // Resets the `BloomFilter` to its empty state.
     fn reset(&mut self) -> &mut Self {
-        self.filter = bitvec![usize, Lsb0; 0; self.bit_size as usize];
+        self.array = bitvec![usize, Lsb0; 0; self.bit_size as usize];
 
         self
     }
@@ -65,14 +65,14 @@ impl DynFilter for BloomFilter {
     fn insert(&mut self, item: Box<dyn DynHash>) {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
-            self.filter.set(idx as usize, true);
+            self.array.set(idx as usize, true);
         }
     }
 
     fn might_contain(&self, item: Box<dyn DynHash>) -> bool {
         let idxes = self.get_bit_indexes(item);
         for idx in idxes {
-            if self.filter.get(idx).expect("No bit at index.") == false {
+            if self.array.get(idx).expect("No bit at index.") == false {
                 return false;
             }
         }
@@ -110,14 +110,14 @@ impl BloomFilter {
         Ok(BloomFilter {
             bit_size: bit_count,
             hash_fn_count,
-            filter,
-            error_rate,
+            array,
+            false_positive_rate,
         })
     }
 
     /// Returns an *approximation* of the number of elements added to the `BloomFilter`.
     pub fn count_approx(&self) -> usize {
-        let num_truthy_bits = self.filter.iter_ones().count();
+        let num_truthy_bits = self.array.iter_ones().count();
         approximate_elems(self.bit_size, self.hash_fn_count, num_truthy_bits).round() as usize
     }
 
@@ -128,7 +128,7 @@ impl BloomFilter {
 
     /// Returns the `BloomFilter`'s actual error rate.
     pub fn error_rate(&self) -> f64 {
-        self.error_rate
+        self.false_positive_rate
     }
 
     /// Returns the number of hash functions the `BloomFilter` uses.
